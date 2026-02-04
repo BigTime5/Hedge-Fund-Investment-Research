@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analysis Dashboard - Leverage & Profitability</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            color: #aaa;
+        }
+        
+        .github-link {
+            margin-top: 12px;
+            font-size: 1.05em;
+            color: #00d9ff;
+        }
+        
+        .github-link a {
+            color: #00ff88;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .github-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+        }
+        
+        h2 {
+            color: #00d9ff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0,217,255,0.3);
+        }
+        
+        h3 {
+            color: #00ff88;
+            margin: 15px 0 10px 0;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(0,217,255,0.1), rgba(0,255,136,0.1));
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(0,217,255,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,217,255,0.2);
+        }
+        
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .metric-label {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .metric-highlight {
+            background: linear-gradient(135deg, rgba(255,107,107,0.2), rgba(255,165,0,0.2));
+            border-color: rgba(255,107,107,0.4);
+        }
+        
+        .chart-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .key-findings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .finding-card {
+            background: rgba(0,255,136,0.1);
+            border-left: 4px solid #00ff88;
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .finding-card.warning {
+            background: rgba(255,165,0,0.1);
+            border-left-color: #ffa500;
+        }
+        
+        .finding-card.info {
+            background: rgba(0,217,255,0.1);
+            border-left-color: #00d9ff;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        th {
+            background: rgba(0,217,255,0.2);
+            color: #00d9ff;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .correlation-positive {
+            color: #00ff88;
+        }
+        
+        .correlation-negative {
+            color: #ff6b6b;
+        }
+        
+        .conclusion-box {
+            background: linear-gradient(135deg, rgba(0,217,255,0.15), rgba(0,255,136,0.15));
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            border: 2px solid rgba(0,217,255,0.3);
+        }
+        
+        .conclusion-box h3 {
+            color: #00d9ff;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            color: #e8e8e8;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover, .tab-btn.active {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .insight-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+        
+        .badge-success {
+            background: rgba(0,255,136,0.2);
+            color: #00ff88;
+        }
+        
+        .badge-warning {
+            background: rgba(255,165,0,0.2);
+            color: #ffa500;
+        }
+        
+        .badge-info {
+            background: rgba(0,217,255,0.2);
+            color: #00d9ff;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .two-col { grid-template-columns: 1fr; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Financial Analysis Dashboard</h1>
+            <p class="subtitle">Leverage & Profitability Analysis Across Industries</p>
+            <p style="color: #666; margin-top: 10px;">Prepared for Hedge Fund Investment Research | 2018-2021 Data</p>
+            <div class="github-link">
+                 
+            </div>
+        </header>
+        
+        <!-- Executive Summary -->
+        <section class="section">
+            <h2>Executive Summary</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">15</div>
+                    <div class="metric-label">Companies Analyzed</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">60</div>
+                    <div class="metric-label">Data Observations</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">3</div>
+                    <div class="metric-label">Industries</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">0.62</div>
+                    <div class="metric-label">Real Estate Leverage-Profitability Correlation</div>
+                </div>
+            </div>
+            
+            <div class="key-findings">
+                <div class="finding-card">
+                    <h3>Key Finding #1</h3>
+                    <p><strong>Real Estate companies have the highest leverage</strong> with an average Debt-to-Equity ratio of 5.69x, significantly higher than Technology (1.78x) and FMCG (3.0x).</p>
+                </div>
+                <div class="finding-card">
+                    <h3>Key Finding #2</h3>
+                    <p><strong>Positive correlation (0.62) exists</strong> between leverage and profitability in Real Estate, suggesting higher leverage may be associated with better operational efficiency.</p>
+                </div>
+                <div class="finding-card info">
+                    <h3>Key Finding #3</h3>
+                    <p><strong>SPG leads Real Estate</strong> with 81.5% gross margin and 47.9% operating margin, coupled with the highest leverage (9.69x D/E).</p>
+                </div>
+                <div class="finding-card warning">
+                    <h3>Key Finding #4</h3>
+                    <p><strong>WY shows low leverage (0.86x)</strong> but also lowest profitability (18.4% operating margin), indicating potential underutilization of debt financing.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('overview')">Industry Overview</button>
+            <button class="tab-btn" onclick="showTab('realestate')">Real Estate Deep Dive</button>
+            <button class="tab-btn" onclick="showTab('correlation')">Leverage-Profitability Analysis</button>
+            <button class="tab-btn" onclick="showTab('trends')">Trend Analysis</button>
+            <button class="tab-btn" onclick="showTab('conclusions')">Conclusions</button>
+        </div>
+        
+        <!-- Tab 1: Industry Overview -->
+        <div id="overview" class="tab-content active">
+            <section class="section">
+                <h2>Industry Comparison</h2>
+                <div class="two-col">
+                    <div class="chart-container">
+                        <div id="profitabilityChart"></div>
+                    </div>
+                    <div class="chart-container">
+                        <div id="leverageChart"></div>
+                    </div>
+                </div>
+                
+                <h3>Industry Financial Summary</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Industry</th>
+                            <th>Gross Margin</th>
+                            <th>Operating Margin</th>
+                            <th>Debt-to-Equity</th>
+                            <th>Debt-to-Assets</th>
+                            <th>Financial Leverage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Technology</td>
+                            <td>57.21%</td>
+                            <td>27.39%</td>
+                            <td>1.78x</td>
+                            <td>0.52x</td>
+                            <td>2.78x</td>
+                        </tr>
+                        <tr>
+                            <td>Fast-Moving Consumer Goods</td>
+                            <td>51.44%</td>
+                            <td>20.71%</td>
+                            <td>3.00x</td>
+                            <td>0.71x</td>
+                            <td>4.05x</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Real Estate</strong></td>
+                            <td><strong>53.48%</strong></td>
+                            <td><strong>29.99%</strong></td>
+                            <td><strong>5.69x</strong></td>
+                            <td>0.71x</td>
+                            <td>7.35x</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+        
+        <!-- Tab 2: Real Estate Deep Dive -->
+        <div id="realestate" class="tab-content">
+            <section class="section">
+                <h2>Real Estate Companies Analysis</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">53.48%</div>
+                        <div class="metric-label">Avg Gross Margin</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">29.99%</div>
+                        <div class="metric-label">Avg Operating Margin</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">5.69x</div>
+                        <div class="metric-label">Avg Debt-to-Equity</div>
+                    </div>
+                    <div class="metric-card metric-highlight">
+                        <div class="metric-value">0.62</div>
+                        <div class="metric-label">Leverage-Profitability Correlation</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div id="realEstateComparison"></div>
+                </div>
+                
+                <h3>Real Estate Companies Performance</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Gross Margin</th>
+                            <th>Operating Margin</th>
+                            <th>ROE (Operating)</th>
+                            <th>Debt-to-Equity</th>
+                            <th>Total Assets ($B)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>SPG</strong></td>
+                            <td><span class="insight-badge badge-success">Highest 81.5%</span></td>
+                            <td><span class="insight-badge badge-success">Highest 47.9%</span></td>
+                            <td>85.51%</td>
+                            <td>9.69x</td>
+                            <td>$32.6B</td>
+                        </tr>
+                        <tr>
+                            <td><strong>AMT</strong></td>
+                            <td>71.28%</td>
+                            <td>38.01%</td>
+                            <td>63.84%</td>
+                            <td>8.60x</td>
+                            <td>$48.2B</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CCI</strong></td>
+                            <td>66.60%</td>
+                            <td>28.43%</td>
+                            <td>17.26%</td>
+                            <td>2.83x</td>
+                            <td>$37.3B</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BAM</strong></td>
+                            <td>20.46%</td>
+                            <td>17.27%</td>
+                            <td>36.52%</td>
+                            <td>6.49x</td>
+                            <td>$328.7B</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WY</strong></td>
+                            <td>27.62%</td>
+                            <td>18.36%</td>
+                            <td>16.40%</td>
+                            <td><span class="insight-badge badge-warning">Lowest 0.86x</span></td>
+                            <td>$16.9B</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+        
+        <!-- Tab 3: Correlation Analysis -->
+        <div id="correlation" class="tab-content">
+            <section class="section">
+                <h2>Leverage vs Profitability Correlation Analysis</h2>
+                
+                <div class="conclusion-box">
+                    <h3>Real Estate: Strong Positive Correlation (r = 0.62)</h3>
+                    <p>The analysis reveals a <strong>moderate-to-strong positive correlation</strong> between leverage (Debt-to-Equity) and profitability (Operating Margin) in Real Estate companies. This suggests that in this sector, companies with higher debt levels tend to also exhibit higher operating margins.</p>
+                </div>
+                
+                <div class="two-col">
+                    <div class="chart-container">
+                        <div id="correlationScatter"></div>
+                    </div>
+                    <div class="chart-container">
+                        <div id="leverageROEChart"></div>
+                    </div>
+                </div>
+                
+                <h3>Industry Correlation Comparison</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Industry</th>
+                            <th>Debt-to-Equity vs Operating Margin</th>
+                            <th>Interpretation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Real Estate</td>
+                            <td><span class="correlation-positive">+0.62</span></td>
+                            <td>Strong positive - Higher leverage associated with higher profitability</td>
+                        </tr>
+                        <tr>
+                            <td>Technology</td>
+                            <td><span class="correlation-negative">-0.31</span></td>
+                            <td>Weak negative - Higher leverage slightly associated with lower margins</td>
+                        </tr>
+                        <tr>
+                            <td>FMCG</td>
+                            <td><span class="correlation-negative">-0.45</span></td>
+                            <td>Moderate negative - Higher leverage associated with lower profitability</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="finding-card" style="margin-top: 20px;">
+                    <h3>Investment Insight</h3>
+                    <p>Unlike other industries where excessive leverage may hurt profitability, Real Estate shows a different pattern. The sector's asset-intensive nature means debt is often used to finance income-generating properties. <strong>Well-leveraged REITs and property companies can generate higher returns on equity</strong> when managed properly.</p>
+                </div>
+            </section>
+        </div>
+        
+        <!-- Tab 4: Trends -->
+        <div id="trends" class="tab-content">
+            <section class="section">
+                <h2>Trend Analysis (2018-2021)</h2>
+                
+                <div class="chart-container">
+                    <div id="marginTrendChart"></div>
+                </div>
+                
+                <div class="chart-container">
+                    <div id="leverageTrendChart"></div>
+                </div>
+                
+                <h3>Real Estate Year-over-Year Performance</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Operating Margin</th>
+                            <th>Debt-to-Equity</th>
+                            <th>ROE (Operating)</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2018</td>
+                            <td>29.49%</td>
+                            <td>4.41x</td>
+                            <td>40.89%</td>
+                            <td>Baseline</td>
+                        </tr>
+                        <tr>
+                            <td>2019</td>
+                            <td>27.43% <span class="insight-badge badge-warning">↓</span></td>
+                            <td>5.77x <span class="insight-badge badge-warning">↑</span></td>
+                            <td>46.54% <span class="insight-badge badge-success">↑</span></td>
+                            <td>Increased leverage, slight margin compression</td>
+                        </tr>
+                        <tr>
+                            <td>2020</td>
+                            <td>29.11% <span class="insight-badge badge-success">↑</span></td>
+                            <td>6.34x <span class="insight-badge badge-warning">↑</span></td>
+                            <td>41.53% <span class="insight-badge badge-warning">↓</span></td>
+                            <td>COVID impact - margins recovered</td>
+                        </tr>
+                        <tr>
+                            <td>2021</td>
+                            <td>33.95% <span class="insight-badge badge-success">Highest ↑</span></td>
+                            <td>6.25x</td>
+                            <td>46.66% <span class="insight-badge badge-success">↑</span></td>
+                            <td>Strong recovery with improved margins</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+        
+        <!-- Tab 5: Conclusions -->
+        <div id="conclusions" class="tab-content">
+            <section class="section">
+                <h2>Conclusions & Investment Recommendations</h2>
+                
+                <div class="conclusion-box">
+                    <h3>Answer to the Research Question</h3>
+                    <p><strong>"Are highly leveraged real estate companies more profitable?"</strong></p>
+                    <p style="margin-top: 15px;">Based on our analysis of 5 Real Estate companies across 4 years (2018-2021), the data supports a <strong>positive answer</strong>. The correlation coefficient of <strong>0.62</strong> between Debt-to-Equity and Operating Margin indicates that in the Real Estate sector, higher leverage is generally associated with better profitability metrics.</p>
+                </div>
+                
+                <h3 style="margin-top: 25px;">Key Conclusions</h3>
+                <div class="key-findings">
+                    <div class="finding-card">
+                        <h3>1. Real Estate Capital Structure</h3>
+                        <p>Real Estate companies operate with significantly higher leverage (avg 5.69x D/E) compared to other industries. This is structural to the business model - real estate requires capital-intensive assets that are often financed through debt.</p>
+                    </div>
+                    <div class="finding-card">
+                        <h3>2. Leverage-Profitability Relationship</h3>
+                        <p>The positive correlation (r=0.62) in Real Estate differs from Tech (r=-0.31) and FMCG (r=-0.45), suggesting that in real estate, debt can be an effective tool for enhancing returns when invested in income-producing properties.</p>
+                    </div>
+                    <div class="finding-card info">
+                        <h3>3. Top Performers</h3>
+                        <p><strong>SPG and AMT</strong> demonstrate that high leverage combined with quality assets can drive exceptional returns (ROE of 85.5% and 63.8% respectively). Their high operating margins (47.9% and 38.0%) justify the leverage strategy.</p>
+                    </div>
+                    <div class="finding-card warning">
+                        <h3>4. Risk Considerations</h3>
+                        <p><strong>WY's low leverage (0.86x)</strong> may indicate underutilized financing capacity, potentially limiting growth. However, excessive leverage (like SPG's 9.69x) carries interest rate and refinancing risks.</p>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 25px;">Investment Recommendations</h3>
+                <div class="finding-card" style="background: rgba(0,255,136,0.15);">
+                    <h3>For the Hedge Fund Manager</h3>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li style="margin: 8px 0;"><strong>Consider SPG and AMT</strong> - These companies demonstrate that high leverage can be effective when deployed in quality real estate assets with strong operating performance.</li>
+                        <li style="margin: 8px 0;"><strong>Monitor interest rate environment</strong> - High-leverage REITs are sensitive to rate changes. The positive correlation may reverse in rising rate environments.</li>
+                        <li style="margin: 8px 0;"><strong>Look at CCI</strong> - Moderate leverage (2.83x) with solid margins (28.4%) offers a balanced risk-reward profile.</li>
+                        <li style="margin: 8px 0;"><strong>Reassess WY</strong> - Very low leverage may present opportunity if the company can effectively deploy debt capital.</li>
+                        <li style="margin: 8px 0;"><strong>Avoid blanket assumptions</strong> - Unlike other industries, leverage in real estate can be value-creating when managed properly.</li>
+                    </ul>
+                </div>
+                
+                <div style="margin-top: 30px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <h3 style="color: #00d9ff;">Data Sources & Methodology</h3>
+                    <p style="margin-top: 10px; color: #aaa;">
+                        <strong>Data:</strong> Balance Sheet and Income Statement data for 15 companies across 3 industries (2018-2021)<br>
+                        <strong>Profitability Metrics:</strong> Gross Margin, Operating Margin, Return on Equity (Operating Income / Equity)<br>
+                        <strong>Leverage Metrics:</strong> Debt-to-Equity, Debt-to-Assets, Financial Leverage (Equity Multiplier)<br>
+                        <strong>Correlation:</strong> Pearson correlation coefficient between Debt-to-Equity and Operating Margin
+                    </p>
+                </div>
+            </section>
+        </div>
+        
+        <footer style="text-align: center; padding: 30px; color: #666;">
+            <p>Financial Analysis Dashboard | Prepared for Investment Research</p>
+            <p style="margin-top: 8px; font-size: 0.95em;">
+                Project source: <a href="https://github.com/BigTime5/Hedge-Fund-Investment-Research" style="color: #00d9ff; text-decoration: none;" target="_blank">github.com/BigTime5/Hedge-Fund-Investment-Research</a>
+            </p>
+            <p style="margin-top: 10px; font-size: 0.9em;">Data covers fiscal years 2018-2021 for selected companies</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Tab functionality
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Industry Comparison - Profitability
+        const profitabilityTrace1 = {
+            x: ['Technology', 'FMCG', 'Real Estate'],
+            y: [57.21, 51.44, 53.48],
+            name: 'Gross Margin',
+            type: 'bar',
+            marker: { color: ['#00d9ff', '#ffa500', '#00ff88'] },
+            text: ['57.2%', '51.4%', '53.5%'],
+            textposition: 'auto'
+        };
+        
+        const profitabilityTrace2 = {
+            x: ['Technology', 'FMCG', 'Real Estate'],
+            y: [27.39, 20.71, 29.99],
+            name: 'Operating Margin',
+            type: 'bar',
+            marker: { color: ['#006080', '#cc7000', '#008040'] },
+            text: ['27.4%', '20.7%', '30.0%'],
+            textposition: 'auto'
+        };
+        
+        const profitabilityLayout = {
+            title: { text: 'Profitability by Industry', font: { color: '#e8e8e8' } },
+            barmode: 'group',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            legend: { font: { color: '#e8e8e8' } },
+            xaxis: { title: { font: { color: '#e8e8e8' } }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' } }, tickfont: { color: '#e8e8e8' } }
+        };
+        
+        Plotly.newPlot('profitabilityChart', [profitabilityTrace1, profitabilityTrace2], profitabilityLayout);
+        
+        // Leverage Comparison
+        const leverageTrace = {
+            x: ['Technology', 'FMCG', 'Real Estate'],
+            y: [1.78, 3.00, 5.69],
+            type: 'bar',
+            marker: {
+                color: ['#ff6b6b', '#ffa500', '#00ff88'],
+                line: { color: ['#ff4444', '#cc7000', '#00cc66'], width: 2 }
+            },
+            text: ['1.78x', '3.00x', '5.69x'],
+            textposition: 'auto'
+        };
+        
+        const leverageLayout = {
+            title: { text: 'Average Debt-to-Equity Ratio by Industry', font: { color: '#e8e8e8' } },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            xaxis: { title: { font: { color: '#e8e8e8' } }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' } }, tickfont: { color: '#e8e8e8' } }
+        };
+        
+        Plotly.newPlot('leverageChart', [leverageTrace], leverageLayout);
+        
+        // Real Estate Comparison
+        const realEstateTrace1 = {
+            x: ['AMT', 'BAM', 'CCI', 'SPG', 'WY'],
+            y: [71.28, 20.46, 66.60, 81.47, 27.62],
+            name: 'Gross Margin',
+            type: 'bar'
+        };
+        
+        const realEstateTrace2 = {
+            x: ['AMT', 'BAM', 'CCI', 'SPG', 'WY'],
+            y: [38.01, 17.27, 28.43, 47.90, 18.36],
+            name: 'Operating Margin',
+            type: 'bar'
+        };
+        
+        const realEstateTrace3 = {
+            x: ['AMT', 'BAM', 'CCI', 'SPG', 'WY'],
+            y: [8.60, 6.49, 2.83, 9.69, 0.86],
+            name: 'Debt-to-Equity',
+            type: 'bar',
+            yaxis: 'y2'
+        };
+        
+        const realEstateLayout = {
+            title: { text: 'Real Estate Companies Performance', font: { color: '#e8e8e8' } },
+            barmode: 'group',
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            legend: { font: { color: '#e8e8e8' } },
+            xaxis: { title: { font: { color: '#e8e8e8' } }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' } }, tickfont: { color: '#e8e8e8' } },
+            yaxis2: {
+                title: { font: { color: '#e8e8e8' }, text: 'Debt-to-Equity' },
+                tickfont: { color: '#e8e8e8' },
+                overlaying: 'y',
+                side: 'right'
+            }
+        };
+        
+        Plotly.newPlot('realEstateComparison', [realEstateTrace1, realEstateTrace2, realEstateTrace3], realEstateLayout);
+        
+        // Correlation Scatter Plot
+        const scatterData = [
+            { x: [6.20, 6.71, 6.97, 6.07, 4.89, 7.16, 10.37, 11.97, 1.83, 2.67, 3.10, 3.73, 8.19, 11.31, 10.39, 8.85, 0.91, 1.01, 0.87, 0.64], 
+              y: [16.69, 19.42, 14.99, 17.99, 36.86, 37.79, 39.37, 38.00, 26.74, 27.61, 27.48, 31.91, 51.84, 49.88, 42.73, 47.14, 15.33, 2.44, 20.95, 34.71],
+              mode: 'markers',
+              type: 'scatter',
+              text: ['BAM 2018', 'BAM 2019', 'BAM 2020', 'BAM 2021', 'AMT 2018', 'AMT 2019', 'AMT 2020', 'AMT 2021', 'CCI 2018', 'CCI 2019', 'CCI 2020', 'CCI 2021', 'SPG 2018', 'SPG 2019', 'SPG 2020', 'SPG 2021', 'WY 2018', 'WY 2019', 'WY 2020', 'WY 2021'],
+              marker: { size: 12, color: '#00ff88', opacity: 0.8 }
+            }
+        ];
+        
+        const scatterLayout = {
+            title: { text: 'Real Estate: Debt-to-Equity vs Operating Margin (r = 0.62)', font: { color: '#e8e8e8' } },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            xaxis: { title: { font: { color: '#e8e8e8' }, text: 'Debt-to-Equity Ratio' }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' }, text: 'Operating Margin (%)' }, tickfont: { color: '#e8e8e8' } },
+            showlegend: false
+        };
+        
+        Plotly.newPlot('correlationScatter', scatterData, scatterLayout);
+        
+        // Leverage vs ROE
+        const leverageROEData = {
+            x: [6.20, 6.71, 6.97, 6.07, 4.89, 7.16, 10.37, 11.97, 1.83, 2.67, 3.10, 3.73, 8.19, 11.31, 10.39, 8.85, 0.91, 1.01, 0.87, 0.64],
+            y: [38.07, 45.05, 29.64, 33.32, 51.39, 56.66, 77.35, 69.98, 12.41, 15.17, 16.96, 24.50, 89.93, 113.87, 65.61, 72.63, 12.67, 1.96, 18.07, 32.89],
+            mode: 'markers',
+            type: 'scatter',
+            text: ['BAM 2018', 'BAM 2019', 'BAM 2020', 'BAM 2021', 'AMT 2018', 'AMT 2019', 'AMT 2020', 'AMT 2021', 'CCI 2018', 'CCI 2019', 'CCI 2020', 'CCI 2021', 'SPG 2018', 'SPG 2019', 'SPG 2020', 'SPG 2021', 'WY 2018', 'WY 2019', 'WY 2020', 'WY 2021'],
+            marker: { size: 12, color: '#00d9ff', opacity: 0.8 }
+        };
+        
+        const leverageROELayout = {
+            title: { text: 'Real Estate: Debt-to-Equity vs ROE', font: { color: '#e8e8e8' } },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            xaxis: { title: { font: { color: '#e8e8e8' }, text: 'Debt-to-Equity Ratio' }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' }, text: 'ROE (%)' }, tickfont: { color: '#e8e8e8' } },
+            showlegend: false
+        };
+        
+        Plotly.newPlot('leverageROEChart', [leverageROEData], leverageROELayout);
+        
+        // Margin Trend Chart
+        const marginTrendTrace1 = {
+            x: [2018, 2019, 2020, 2021],
+            y: [35.18, 34.85, 31.85, 34.87],
+            name: 'Technology',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#00d9ff', width: 3 }
+        };
+        
+        const marginTrendTrace2 = {
+            x: [2018, 2019, 2020, 2021],
+            y: [23.39, 21.85, 21.36, 21.26],
+            name: 'FMCG',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#ffa500', width: 3 }
+        };
+        
+        const marginTrendTrace3 = {
+            x: [2018, 2019, 2020, 2021],
+            y: [29.49, 27.43, 29.11, 33.95],
+            name: 'Real Estate',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#00ff88', width: 3 }
+        };
+        
+        const marginTrendLayout = {
+            title: { text: 'Operating Margin Trends by Industry (2018-2021)', font: { color: '#e8e8e8' } },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            legend: { font: { color: '#e8e8e8' } },
+            xaxis: { title: { font: { color: '#e8e8e8' }, text: 'Year' }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' }, text: 'Operating Margin (%)' }, tickfont: { color: '#e8e8e8' } }
+        };
+        
+        Plotly.newPlot('marginTrendChart', [marginTrendTrace1, marginTrendTrace2, marginTrendTrace3], marginTrendLayout);
+        
+        // Leverage Trend Chart
+        const leverageTrendTrace1 = {
+            x: [2018, 2019, 2020, 2021],
+            y: [1.48, 1.75, 1.81, 2.08],
+            name: 'Technology',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#00d9ff', width: 3 }
+        };
+        
+        const leverageTrendTrace2 = {
+            x: [2018, 2019, 2020, 2021],
+            y: [3.55, 3.40, 3.86, 3.43],
+            name: 'FMCG',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#ffa500', width: 3 }
+        };
+        
+        const leverageTrendTrace3 = {
+            x: [2018, 2019, 2020, 2021],
+            y: [4.41, 5.77, 6.34, 6.25],
+            name: 'Real Estate',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#00ff88', width: 3 }
+        };
+        
+        const leverageTrendLayout = {
+            title: { text: 'Debt-to-Equity Trends by Industry (2018-2021)', font: { color: '#e8e8e8' } },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e8e8e8' },
+            legend: { font: { color: '#e8e8e8' } },
+            xaxis: { title: { font: { color: '#e8e8e8' }, text: 'Year' }, tickfont: { color: '#e8e8e8' } },
+            yaxis: { title: { font: { color: '#e8e8e8' }, text: 'Debt-to-Equity Ratio' }, tickfont: { color: '#e8e8e8' } }
+        };
+        
+        Plotly.newPlot('leverageTrendChart', [leverageTrendTrace1, leverageTrendTrace2, leverageTrendTrace3], leverageTrendLayout);
+    </script>
+</body>
+</html>
